@@ -1,0 +1,287 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Removed AppointmentStatus, VerificationStatus, SenderRole, RecordType enums, using String instead
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Patient
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Patient {
+  id             String          @id @default(uuid())
+  name           String
+  email          String          @unique
+  phone          String          @unique
+  passwordHash   String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  appointments   Appointment[]
+  records        MedicalRecord[]
+  notifications  Notification[]
+  passwordResets PasswordReset[]
+  reviews        Review[]
+  prescriptions  Prescription[]
+
+  @@map("patients")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Doctor
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Doctor {
+  id                 String             @id @default(uuid())
+  name               String
+  email              String             @unique
+  phone              String             @unique
+  passwordHash       String
+  registrationNumber String             @unique
+  qualification      String
+  degree             String
+  experience         Int
+  specialty          String
+  clinicName         String?
+  clinicAddress      String
+  city               String
+  state              String
+  country            String
+  lat                Float
+  lng                Float
+  rating             Float              @default(0)
+  reviewCount        Int                @default(0)
+  fee                Float
+  bio                String?
+  imageUrl           String?
+  documents          Json?              // For storing URLs of uploaded certificates
+  languagesSpoken    String[]           @default([])
+  verificationStatus String             @default("PENDING")
+  isOnline           Boolean            @default(false)
+  membershipStatus   String             @default("INACTIVE")
+  membershipPaidAt   DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  sessions           DoctorSession[]
+  appointments       Appointment[]
+  reviews            Review[]
+  notifications      Notification[]
+  passwordResets     DoctorPasswordReset[]
+  prescriptions      Prescription[]
+
+  @@map("doctors")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DoctorSession
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DoctorSession {
+  id           String        @id @default(uuid())
+  doctorId     String
+  date         DateTime
+  sessionType  String        // 'MORNING' or 'EVENING'
+  startTime    String        // e.g. '10:00 AM'
+  endTime      String        // e.g. '01:00 PM'
+  maxTokens    Int
+  currentToken Int           @default(0) // 0 means no one served yet
+
+  doctor       Doctor        @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@unique([doctorId, date, sessionType])
+  @@map("doctor_sessions")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Appointment
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Appointment {
+  id          String            @id @default(uuid())
+  patientId   String
+  doctorId    String
+  sessionId   String
+  tokenNumber Int
+  status      String            @default("WAITING") // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
+  notes       String?
+  type        String            // 'in-person' | 'video'
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  patient     Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor      Doctor            @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  session     DoctorSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  messages    Message[]
+  prescription Prescription?
+  preCheck    PreCheck?
+
+  @@map("appointments")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PreCheck
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PreCheck {
+  id            String      @id @default(uuid())
+  appointmentId String      @unique
+  symptoms      String?
+  vitalSigns    Json?       // { temp, bp, heartRate, weight }
+  medicalHistory String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@map("pre_checks")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Message
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Message {
+  id            String      @id @default(uuid())
+  appointmentId String
+  senderId      String
+  senderRole    String
+  content       String?
+  fileUrl       String?
+  createdAt     DateTime    @default(now())
+
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Medical Record
+// ─────────────────────────────────────────────────────────────────────────────
+
+model MedicalRecord {
+  id        String     @id @default(uuid())
+  patientId String
+  type      String
+  fileName  String
+  fileUrl   String
+  fileSize  Int
+  notes     String?
+  createdAt DateTime   @default(now())
+
+  patient   Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("medical_records")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Review
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Review {
+  id        String   @id @default(uuid())
+  doctorId  String
+  patientId String
+  rating    Int
+  reviewText String
+  createdAt DateTime @default(now())
+
+  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Notification
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(uuid())
+  patientId String?
+  doctorId  String?
+  title     String
+  body      String
+  type      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  patient   Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor    Doctor?  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Password Reset
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PasswordReset {
+  id        String    @id @default(uuid())
+  patientId String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}
+
+model DoctorPasswordReset {
+  id        String    @id @default(uuid())
+  doctorId  String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  doctor    Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@map("doctor_password_resets")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Prescription
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Prescription {
+  id            String      @id @default(uuid())
+  appointmentId String      @unique
+  doctorId      String
+  patientId     String
+  imageUrl      String?
+  digitalText   String?     // Extracted by AI
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  doctor        Doctor      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient       Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("prescriptions")
+}
+
+// -----------------------------------------------------------------------------
+// Admin
+// -----------------------------------------------------------------------------
+
+model Admin {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+  
+  @@map("admins")
+}

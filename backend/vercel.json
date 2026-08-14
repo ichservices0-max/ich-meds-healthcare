@@ -1,0 +1,22 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "api/index.ts"
+    }
+  ],
+  "env": {
+    "DATABASE_URL": "postgresql://healthcare_app.cpjkzayzmeihmwaamkcx:HealthCare2026SecurePass123@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?pgbouncer=true",
+    "JWT_SECRET": "hc-jwt-secret-2026-antigravity-secure-key-xK9mP2",
+    "JWT_REFRESH_SECRET": "hc-refresh-secret-2026-antigravity-key-Lw7nQ4",
+    "FRONTEND_URL": "https://frontend-kappa-liard-40.vercel.app,http://localhost:3000",
+    "NODE_ENV": "production"
+  }
+}
