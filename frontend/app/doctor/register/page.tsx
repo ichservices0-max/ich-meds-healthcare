@@ -1,11 +1,12 @@
-﻿'use client';
+'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDoctorAuth } from '@/contexts/DoctorAuthContext';
 import Link from 'next/link';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Smartphone, QrCode, CreditCard, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export default function DoctorRegister() {
   const [step, setStep] = useState(1);
@@ -24,7 +25,7 @@ export default function DoctorRegister() {
     city: '',
     state: '',
     country: '',
-    fee: '0',
+    fee: '500',
     lat: '0',
     lng: '0',
   });
@@ -37,6 +38,8 @@ export default function DoctorRegister() {
     governmentId: null,
   });
 
+  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'qr' | 'card'>('upi');
+  const [upiId, setUpiId] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -69,6 +72,16 @@ export default function DoctorRegister() {
       setError('Please fill in all professional details.');
       return;
     }
+    if (step === 3 && (!formData.clinicAddress || !formData.city || !formData.state || !formData.country)) {
+      setError('Please fill in all clinic and location details.');
+      return;
+    }
+    if (step === 4) {
+      if (!agreed) {
+        setError('You must agree to the Terms of Service and Privacy Policy before proceeding to payment.');
+        return;
+      }
+    }
     setStep(s => s + 1);
   };
 
@@ -76,18 +89,15 @@ export default function DoctorRegister() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (step !== 4) return;
+    if (step !== 5) return;
     
     setError('');
-
-    if (!agreed) {
-      setError('You must agree to the Terms of Service and Privacy Policy before submitting your application.');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
+      // Simulate ₹10 profile making charge payment verification
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
       const data = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
         data.append(key, value);
@@ -148,7 +158,7 @@ export default function DoctorRegister() {
               </div>
               <div>
                 <label className="block text-[13px] font-semibold text-ink-500 mb-1.5 uppercase tracking-wider">Phone Number</label>
-                <input type="tel" name="phone" required className="premium-input" value={formData.phone} onChange={handleInputChange} placeholder="+1 234 567 8900" />
+                <input type="tel" name="phone" required className="premium-input" value={formData.phone} onChange={handleInputChange} placeholder="+91 9876543210" />
               </div>
               <div>
                 <label className="block text-[13px] font-semibold text-ink-500 mb-1.5 uppercase tracking-wider">Password</label>
@@ -217,8 +227,8 @@ export default function DoctorRegister() {
                 </div>
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-ink-500 mb-1.5 uppercase tracking-wider">Consultation Fee</label>
-                <input type="number" name="fee" required className="premium-input" value={formData.fee} onChange={handleInputChange} placeholder="100" />
+                <label className="block text-[13px] font-semibold text-ink-500 mb-1.5 uppercase tracking-wider">Consultation Fee (₹)</label>
+                <input type="number" name="fee" required className="premium-input" value={formData.fee} onChange={handleInputChange} placeholder="500" />
               </div>
             </div>
           </motion.div>
@@ -257,6 +267,22 @@ export default function DoctorRegister() {
               ))}
             </div>
 
+            {/* Profile Fee Notice */}
+            <div className="mt-6 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/90 rounded-2xl p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white font-black text-lg flex items-center justify-center shadow-sm shrink-0">
+                  ₹10
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-emerald-950">Doctor Profile Making Fee</p>
+                  <p className="text-xs text-emerald-700 font-medium">One-time registration & medical credentials verification charge</p>
+                </div>
+              </div>
+              <span className="text-xs font-bold uppercase tracking-wider bg-emerald-200/70 text-emerald-800 px-3 py-1 rounded-full shrink-0">
+                ₹10 One-Time
+              </span>
+            </div>
+
             <div className="flex items-start mt-6 pt-4 border-t border-surface-200">
               <input
                 id="doctor-terms"
@@ -269,6 +295,100 @@ export default function DoctorRegister() {
                 I agree to the <span className="text-primary-600 font-medium hover:underline">Terms of Service</span> and <span className="text-primary-600 font-medium hover:underline">Privacy Policy</span>, and I explicitly consent to the secure collection, processing, and storage of my professional credentials and identity documents for verification purposes.
               </label>
             </div>
+          </motion.div>
+        );
+      case 5:
+        return (
+          <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }} transition={{ duration: 0.3 }} className="space-y-5">
+            <h2 className="text-2xl font-bold text-ink-800">Doctor Profile Making Charge</h2>
+            <p className="text-sm text-ink-500">Pay the one-time ₹10 registration fee to submit your profile and credentials for verification.</p>
+
+            {/* Summary Box */}
+            <div className="bg-white border border-ink-100 rounded-2xl p-5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between text-sm pb-2 border-b border-ink-100">
+                <span className="text-ink-400">Doctor Name</span>
+                <span className="text-ink-800 font-bold">{formData.name}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm pb-2 border-b border-ink-100">
+                <span className="text-ink-400">Medical Registration</span>
+                <span className="text-ink-800 font-bold">{formData.registrationNumber}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm pb-2 border-b border-ink-100">
+                <span className="text-ink-400">Specialization</span>
+                <span className="text-ink-800 font-bold">{formData.specialty}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm pb-2 border-b border-ink-100">
+                <span className="text-ink-400">Profile Registration Fee</span>
+                <span className="text-ink-800 font-bold">₹10.00</span>
+              </div>
+              <div className="flex items-center justify-between text-base pt-1">
+                <span className="text-ink-700 font-extrabold">Total Payable Amount</span>
+                <span className="text-emerald-600 font-black text-xl">₹10</span>
+              </div>
+            </div>
+
+            {/* Payment Mode Selector */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-ink-600 uppercase tracking-wider block">
+                Select Payment Method
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { id: 'upi' as const, label: 'UPI / Apps', Icon: Smartphone },
+                  { id: 'qr' as const, label: 'Scan QR', Icon: QrCode },
+                  { id: 'card' as const, label: 'Card / Net', Icon: CreditCard },
+                ].map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setPaymentMethod(id)}
+                    className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all text-xs font-bold ${
+                      paymentMethod === id
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-800 shadow-sm'
+                        : 'border-ink-200 bg-white text-ink-600 hover:bg-ink-50'
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${paymentMethod === id ? 'text-emerald-600' : 'text-ink-400'}`} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Payment Details */}
+            {paymentMethod === 'upi' && (
+              <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 space-y-3">
+                <p className="text-xs font-bold text-emerald-950">Pay using Google Pay, PhonePe, Paytm, or BHIM</p>
+                <input
+                  type="text"
+                  value={upiId}
+                  onChange={(e) => setUpiId(e.target.value)}
+                  placeholder="e.g. doctor@upi / 9876543210@paytm"
+                  className="premium-input bg-white text-xs w-full"
+                />
+                <div className="flex items-center gap-2 text-[11px] text-emerald-800 font-medium">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Instant verification with any registered UPI ID</span>
+                </div>
+              </div>
+            )}
+
+            {paymentMethod === 'qr' && (
+              <div className="bg-white border border-ink-100 rounded-2xl p-4 text-center space-y-2">
+                <div className="w-28 h-28 mx-auto bg-ink-50 border border-ink-200 rounded-xl flex flex-col items-center justify-center p-2 shadow-inner">
+                  <QrCode className="w-16 h-16 text-ink-800" />
+                  <span className="text-[10px] font-bold text-ink-600 mt-1">₹10 Doctor Profile UPI</span>
+                </div>
+                <p className="text-xs font-medium text-ink-500">Scan with any UPI camera to complete ₹10 payment</p>
+              </div>
+            )}
+
+            {paymentMethod === 'card' && (
+              <div className="bg-white border border-ink-100 rounded-2xl p-4 space-y-2">
+                <p className="text-xs font-bold text-ink-700">Corporate / Personal Card Checkout</p>
+                <p className="text-xs text-ink-500">Supports Visa, MasterCard, RuPay, and Indian NetBanking.</p>
+              </div>
+            )}
           </motion.div>
         );
       default:
@@ -295,7 +415,7 @@ export default function DoctorRegister() {
             
             <div className="flex items-center mt-8 relative">
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-surface-200 rounded-full z-0" />
-              {[1, 2, 3, 4].map((i) => {
+              {[1, 2, 3, 4, 5].map((i) => {
                 const isActive = step === i;
                 const isCompleted = step > i;
                 return (
@@ -312,7 +432,7 @@ export default function DoctorRegister() {
             </div>
             
             {/* Progress Bar overlay for completed sections */}
-            <div className="absolute top-[8.2rem] left-[12%] h-1 bg-gradient-to-r from-primary to-electric rounded-full transition-all duration-500 z-0" style={{ width: `${(step - 1) * 25}%` }} />
+            <div className="absolute top-[8.2rem] left-[10%] h-1 bg-gradient-to-r from-primary to-electric rounded-full transition-all duration-500 z-0" style={{ width: `${(step - 1) * 20}%` }} />
           </div>
 
           {error && (
@@ -347,15 +467,27 @@ export default function DoctorRegister() {
                 >
                   Continue
                 </button>
+              ) : step === 4 ? (
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  className="btn-primary"
+                >
+                  Proceed to Profile Fee (₹10) →
+                </button>
               ) : (
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="btn-primary flex items-center gap-2"
+                  className="w-full sm:w-auto py-3 px-8 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 text-sm transition-all disabled:opacity-50"
                 >
                   {isLoading ? (
-                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Submitting...</>
-                  ) : 'Submit Application'}
+                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Verifying ₹10 Payment & Submitting...</>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-5 h-5" /> Pay ₹10 & Submit Application
+                    </>
+                  )}
                 </button>
               )}
             </div>
