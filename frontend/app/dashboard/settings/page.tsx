@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
@@ -130,7 +130,7 @@ export default function SettingsPage() {
               <h2 className="text-xl font-extrabold text-ink-800 mb-6">Profile Information</h2>
 
               {/* Avatar */}
-              <div className="flex items-center gap-5 mb-8">
+              <div className="flex items-center gap-5 mb-6">
                 <div className="relative">
                   <img src={avatarUrl} alt="Profile" className="w-24 h-24 rounded-2xl border-2 border-primary-100 shadow-sm" />
                   <button className="absolute -bottom-2 -right-2 w-9 h-9 bg-white text-ink-600 hover:text-primary-600 rounded-full flex items-center justify-center border border-ink-200 shadow-sm transition-colors">
@@ -142,6 +142,20 @@ export default function SettingsPage() {
                   <p className="text-sm font-medium text-ink-500 mt-0.5">{profileForm.email}</p>
                   <button className="text-xs font-bold text-primary-600 hover:text-primary-700 mt-2">Change photo</button>
                 </div>
+              </div>
+
+              {/* Profile Making Status */}
+              <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/90 flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
+                    ₹10
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-emerald-950">Verified Digital Health Profile</p>
+                    <p className="text-xs text-emerald-700 font-medium">Profile Making Fee: <span className="font-bold text-emerald-900">₹10 Paid & Active</span></p>
+                  </div>
+                </div>
+                <span className="badge-success text-xs font-bold px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-200">Active</span>
               </div>
 
               <form onSubmit={handleProfileSave} className="space-y-5">

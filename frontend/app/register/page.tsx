@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -277,6 +277,22 @@ export default function RegisterPage() {
               </div>
             )}
 
+            {/* Profile Making Charge Notice */}
+            <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/90 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white font-black text-lg flex items-center justify-center shadow-sm shrink-0">
+                  ₹10
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-emerald-950">Patient Profile Making Charge</p>
+                  <p className="text-xs text-emerald-700 font-medium">One-time registration & digital health record setup</p>
+                </div>
+              </div>
+              <span className="text-[11px] font-extrabold uppercase tracking-wider bg-emerald-200/70 text-emerald-800 px-2.5 py-1 rounded-full shrink-0">
+                ₹10 Fixed
+              </span>
+            </div>
+
             <div className="flex items-start pb-2">
               <input
                 id="terms"
@@ -302,7 +318,7 @@ export default function RegisterPage() {
                   Creating account...
                 </>
               ) : (
-                'Create Account'
+                'Create Account & Pay ₹10 Profile Fee'
               )}
             </motion.button>
           </form>          <div className="mt-8 text-center text-[15px] text-ink-500">
