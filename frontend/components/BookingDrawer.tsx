@@ -131,8 +131,8 @@ export default function BookingDrawer({ doctor, isOpen, onClose, onBooked }: Boo
                   <p className="text-sm text-primary-400">{doctor.specialty}</p>
                 </div>
                 <div className="ml-auto text-right">
-                  <p className="text-2xl font-bold text-white">${doctor.fee}</p>
-                  <p className="text-xs text-slate-400">consultation fee</p>
+                  <p className="text-2xl font-bold text-white">₹{doctor.fee}</p>
+                  <p className="text-xs text-slate-400">Doctor fee + ₹10 profile fee</p>
                 </div>
               </div>
 
@@ -310,13 +310,18 @@ export default function BookingDrawer({ doctor, isOpen, onClose, onBooked }: Boo
                           { label: 'Session', value: `${selectedSession?.sessionType} (${selectedSession?.startTime} - ${selectedSession?.endTime})` },
                           { label: 'Queue Token', value: `Wait for Next Available Token` },
                           { label: 'Type', value: appointmentType === 'video' ? 'Video Consultation' : 'In-Person Visit' },
-                          { label: 'Fee', value: `$${doctor.fee}` },
+                          { label: 'Doctor Consultation Fee', value: `₹${doctor.fee}` },
+                          { label: 'Patient Profile Fee', value: `₹10` },
                         ].map(({ label, value }) => (
                           <div key={label} className="flex justify-between text-sm">
                             <span className="text-slate-400">{label}</span>
                             <span className="text-white font-bold">{value}</span>
                           </div>
                         ))}
+                        <div className="pt-2 mt-2 border-t border-white/10 flex justify-between text-base">
+                          <span className="text-primary-300 font-bold">Total Amount</span>
+                          <span className="text-emerald-400 font-extrabold text-lg">₹{(Number(doctor.fee) || 0) + 10}</span>
+                        </div>
                       </div>
                       {notes && (
                         <div>

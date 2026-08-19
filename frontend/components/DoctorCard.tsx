@@ -77,10 +77,10 @@ export default function DoctorCard({ doctor, onBook }: DoctorCardProps) {
       {/* Info row */}
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-1.5 text-ink-500">
-          <div className="w-6 h-6 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100">
-            <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+          <div className="w-6 h-6 bg-emerald-50 rounded-lg flex items-center justify-center border border-emerald-100 font-bold text-emerald-600 text-xs">
+            ₹
           </div>
-          <span className="font-semibold text-ink-700">${doctor.fee}</span>
+          <span className="font-semibold text-ink-700">₹{doctor.fee}</span>
           <span>per visit</span>
         </div>
         <div className="flex items-center gap-1.5 text-ink-500">

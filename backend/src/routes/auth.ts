@@ -205,6 +205,9 @@ router.get('/me', protectPatient, async (req: Request, res: Response): Promise<v
         name: true,
         email: true,
         phone: true,
+        dateOfBirth: true,
+        bloodGroup: true,
+        address: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -219,6 +222,85 @@ router.get('/me', protectPatient, async (req: Request, res: Response): Promise<v
   } catch (error) {
     console.error('Get /me error:', error);
     res.status(500).json({ error: 'Could not fetch profile.' });
+  }
+});
+
+// PUT /api/auth/profile
+router.put('/profile', protectPatient, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const patientId = req.user!.id;
+    const { name, phone, dateOfBirth, bloodGroup, address } = req.body;
+
+    const updatedPatient = await prisma.patient.update({
+      where: { id: patientId },
+      data: {
+        name,
+        phone,
+        dateOfBirth,
+        bloodGroup,
+        address,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        dateOfBirth: true,
+        bloodGroup: true,
+        address: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    res.status(200).json({ patient: updatedPatient });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ error: 'Could not update profile.' });
+  }
+});
+
+// POST /api/auth/change-password
+router.post('/change-password', protectPatient, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const patientId = req.user!.id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ error: 'Current password and new password are required.' });
+      return;
+    }
+
+    const patient = await prisma.patient.findUnique({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      res.status(404).json({ error: 'Patient not found.' });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, patient.passwordHash);
+    if (!isMatch) {
+      res.status(400).json({ error: 'Current password is incorrect.' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({ error: 'New password must be at least 6 characters.' });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.patient.update({
+      where: { id: patientId },
+      data: { passwordHash: hashedPassword },
+    });
+
+    res.status(200).json({ message: 'Password has been updated successfully.' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ error: 'Could not change password. Please try again.' });
   }
 });
 

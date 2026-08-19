@@ -4,7 +4,7 @@ import { useDoctorAuth } from '@/contexts/DoctorAuthContext';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
-import { FiUser, FiMail, FiPhone, FiBriefcase, FiMapPin, FiDollarSign, FiStar, FiCheckCircle, FiClock, FiXCircle, FiEdit2, FiSave } from 'react-icons/fi';
+import { FiUser, FiMail, FiPhone, FiBriefcase, FiMapPin, FiDollarSign, FiStar, FiCheckCircle, FiClock, FiXCircle, FiEdit2, FiSave, FiLock } from 'react-icons/fi';
 
 export default function DoctorProfile() {
   const { doctor, updateDoctorInfo, loading } = useDoctorAuth();
@@ -55,6 +55,46 @@ export default function DoctorProfile() {
       setError(err.response?.data?.error || 'Failed to update profile');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Password state
+  const [passwordForm, setPasswordForm] = useState({ current: '', newPass: '', confirm: '' });
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+
+  const handlePasswordSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (passwordForm.newPass !== passwordForm.confirm) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+    if (passwordForm.newPass.length < 6) {
+      setPasswordError('Password must be at least 6 characters');
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const token = localStorage.getItem('doctorToken');
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctor/profile/change-password`,
+        {
+          currentPassword: passwordForm.current,
+          newPassword: passwordForm.newPass,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setPasswordSuccess('Password updated successfully!');
+      setPasswordForm({ current: '', newPass: '', confirm: '' });
+    } catch (err: any) {
+      setPasswordError(err.response?.data?.error || 'Failed to update password');
+    } finally {
+      setPasswordSaving(false);
     }
   };
 
@@ -218,6 +258,58 @@ export default function DoctorProfile() {
             <div className="mt-4">
               <Field label="Full Address" name="clinicAddress" textarea />
             </div>
+          </div>
+
+          {/* Change Password */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center"><FiLock className="mr-2 text-blue-600" /> Change Password</h3>
+            
+            {passwordError && (
+              <div className="mb-4 p-3 bg-red-105 text-red-700 bg-red-100 rounded-lg text-sm">{passwordError}</div>
+            )}
+            {passwordSuccess && (
+              <div className="mb-4 p-3 bg-green-105 text-green-700 bg-green-100 rounded-lg text-sm">{passwordSuccess}</div>
+            )}
+
+            <form onSubmit={handlePasswordSave} className="space-y-4 max-w-md">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Current Password</label>
+                <input
+                  type="password"
+                  value={passwordForm.current}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-850 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={passwordForm.newPass}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, newPass: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-850 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={passwordForm.confirm}
+                  onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-850 dark:text-slate-100 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={passwordSaving}
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+              >
+                <span>{passwordSaving ? 'Updating...' : 'Update Password'}</span>
+              </button>
+            </form>
           </div>
         </motion.div>
       </div>

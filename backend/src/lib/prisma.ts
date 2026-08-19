@@ -5,9 +5,16 @@ declare global {
   var __prisma: PrismaClient | undefined;
 }
 
+const dbUrl = process.env.DATABASE_URL || 'postgresql://healthcare_app:HealthCare2026SecurePass123@db.umzmsvsardudkjpvdogx.supabase.co:5432/postgres';
+
 const prisma: PrismaClient =
   global.__prisma ??
   new PrismaClient({
+    datasources: {
+      db: {
+        url: dbUrl,
+      },
+    },
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
 

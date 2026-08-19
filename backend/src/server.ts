@@ -68,8 +68,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const uploadsPath = path.resolve(__dirname, '../uploads');
 app.use('/uploads', express.static(uploadsPath));
 
-// ─── Health Check ─────────────────────────────────────────────────────────────
-app.get('/health', (_req, res) => {
+// ─── Health & Debug Check ───────────────────────────────────────────────────
+app.get(['/health', '/api/health'], (_req, res) => {
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -77,30 +77,55 @@ app.get('/health', (_req, res) => {
   });
 });
 
+app.get(['/debug', '/api/debug'], async (_req, res) => {
+  try {
+    const patientCount = await prisma.patient.count();
+    const doctorCount = await prisma.doctor.count();
+    res.status(200).json({
+      status: 'ok',
+      database: 'connected',
+      patientCount,
+      doctorCount,
+      environment: process.env.NODE_ENV ?? 'development',
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      status: 'error',
+      database: 'failed',
+      message: err.message,
+    });
+  }
+});
+
 // ─── Trust Proxy (Vercel / Reverse Proxy support) ─────────────────────────────
 app.set('trust proxy', 1);
 
-// ─── API Routes ───────────────────────────────────────────────────────────────
-app.use('/api/auth', authRoutes); // Limits applied per-route
-app.use('/api/doctors', publicLimiter, doctorRoutes);
-app.use('/api/appointments', apiLimiter, appointmentRoutes);
-app.use('/api/records', apiLimiter, recordRoutes);
-app.use('/api/notifications', apiLimiter, notificationRoutes);
-app.use('/api/messages', apiLimiter, messageRoutes);
+// ─── API Routes (Mounted on both /api/* and /* for full Vercel compatibility) ──
+const mount = (routePath: string, ...handlers: any[]) => {
+  app.use(`/api${routePath}`, ...handlers);
+  app.use(routePath, ...handlers);
+};
+
+mount('/auth', authRoutes);
+mount('/doctors', publicLimiter, doctorRoutes);
+mount('/appointments', apiLimiter, appointmentRoutes);
+mount('/records', apiLimiter, recordRoutes);
+mount('/notifications', apiLimiter, notificationRoutes);
+mount('/messages', apiLimiter, messageRoutes);
 
 // Doctor specific routes
-app.use('/api/doctor/auth', doctorAuthRoutes); // Limits applied per-route
-app.use('/api/doctor/profile', apiLimiter, doctorProfileRoutes);
-app.use('/api/doctor/appointments', apiLimiter, doctorAppointmentsRoutes);
-app.use('/api/doctor/reviews', publicLimiter, doctorReviewsRoutes);
-app.use('/api/doctor/patients', apiLimiter, doctorPatientsRoutes);
-app.use('/api/doctor/messages', apiLimiter, doctorMessagesRoutes);
+mount('/doctor/auth', doctorAuthRoutes);
+mount('/doctor/profile', apiLimiter, doctorProfileRoutes);
+mount('/doctor/appointments', apiLimiter, doctorAppointmentsRoutes);
+mount('/doctor/reviews', publicLimiter, doctorReviewsRoutes);
+mount('/doctor/patients', apiLimiter, doctorPatientsRoutes);
+mount('/doctor/messages', apiLimiter, doctorMessagesRoutes);
 
 // Admin routes
-app.use('/api/admin', adminRoutes);
+mount('/admin', adminRoutes);
 
 // Precheck routes
-app.use('/api/precheck', precheckRoutes);
+mount('/precheck', precheckRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {

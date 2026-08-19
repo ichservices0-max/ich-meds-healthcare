@@ -2,6 +2,9 @@
   "name": "healthcare-frontend",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "next dev -p 3000",
     "dev:patient": "cross-env NEXT_PUBLIC_PORTAL=patient next dev -p 3000",
