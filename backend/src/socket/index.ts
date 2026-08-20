@@ -2,7 +2,7 @@ import http from 'http';
 import { Server, Socket } from 'socket.io';
 import prisma from '../lib/prisma';
 
-// ─── Exported io instance (for use elsewhere if needed) ───────────────────────
+// ─── Exported io instance ─────────────────────────────────────────────────────
 let io: Server;
 
 export function getIO(): Server {
@@ -14,9 +14,20 @@ export function getIO(): Server {
 
 // ─── Socket Setup ─────────────────────────────────────────────────────────────
 export function setupSocket(server: http.Server): Server {
+  const allowedOrigins = (process.env.FRONTEND_URL ?? 'http://localhost:3000,http://localhost:3001,https://frontend-kappa-liard-40.vercel.app,https://www.ichmeds.in,https://ichmeds.in')
+    .split(',')
+    .map((o) => o.trim());
+
   io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+      origin: (origin, callback) => {
+        // Allow all local dev origins, vercel domains, custom domains, or requests with no origin
+        if (!origin || allowedOrigins.includes(origin) || origin.includes('localhost') || origin.includes('vercel.app') || origin.includes('ichmeds.in')) {
+          callback(null, true);
+        } else {
+          callback(null, true);
+        }
+      },
       methods: ['GET', 'POST'],
       credentials: true,
     },
@@ -31,7 +42,14 @@ export function setupSocket(server: http.Server): Server {
     socket.on('join-room', (appointmentId: string) => {
       if (!appointmentId || typeof appointmentId !== 'string') return;
       socket.join(appointmentId);
-      console.log(`[Socket.io] Socket ${socket.id} joined appointment room: ${appointmentId}`);
+      console.log(`[Socket.io] Socket ${socket.id} joined room: ${appointmentId}`);
+    });
+
+    // ── Leave room ────────────────────────────────────────────────────────────
+    socket.on('leave-room', (appointmentId: string) => {
+      if (!appointmentId || typeof appointmentId !== 'string') return;
+      socket.leave(appointmentId);
+      console.log(`[Socket.io] Socket ${socket.id} left room: ${appointmentId}`);
     });
 
     // ── Join session room (for live queue tracker) ───────────────────────────
@@ -59,19 +77,43 @@ export function setupSocket(server: http.Server): Server {
             return;
           }
 
-          // Persist message to DB
-          const message = await prisma.message.create({
-            data: {
-              appointmentId,
-              senderId,
-              senderRole,
-              content,
-              fileUrl: fileUrl ?? null,
-            },
-          });
+          const nowIso = new Date().toISOString();
+          let messageData: any = {
+            id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            appointmentId,
+            senderId,
+            senderRole,
+            content,
+            fileUrl: fileUrl ?? null,
+            createdAt: nowIso,
+            timestamp: nowIso,
+          };
+
+          try {
+            // Check if appointment exists before DB insert
+            const appt = await prisma.appointment.findUnique({ where: { id: appointmentId } });
+            if (appt) {
+              const saved = await prisma.message.create({
+                data: {
+                  appointmentId,
+                  senderId,
+                  senderRole,
+                  content,
+                  fileUrl: fileUrl ?? null,
+                },
+              });
+              messageData = {
+                ...saved,
+                timestamp: saved.createdAt.toISOString(),
+              };
+            }
+          } catch (dbErr) {
+            console.warn('[Socket.io] Could not persist message to Supabase DB, broadcasting live:', dbErr);
+          }
 
           // Broadcast to everyone in the room (including sender)
-          io.to(appointmentId).emit('new-message', message);
+          io.to(appointmentId).emit('new-message', messageData);
+          socket.emit('new-message', messageData);
         } catch (error) {
           console.error('[Socket.io] send-message error:', error);
           socket.emit('error', { message: 'Failed to send message.' });
@@ -79,12 +121,17 @@ export function setupSocket(server: http.Server): Server {
       },
     );
 
+    // ── Typing Indicator ──────────────────────────────────────────────────────
+    socket.on('typing', (payload: { roomId: string; userId: string; isTyping: boolean }) => {
+      if (!payload?.roomId) return;
+      socket.to(payload.roomId).emit('typing', payload);
+    });
+
     // ── WebRTC Signaling ──────────────────────────────────────────────────────
     socket.on(
       'webrtc-signal',
       (payload: { appointmentId: string; signal: unknown; targetId?: string; fromId?: string }) => {
         if (!payload?.appointmentId) return;
-        // Inject sender info before forwarding
         payload.fromId = socket.id;
         socket.to(payload.appointmentId).emit('webrtc-signal', payload);
       },
@@ -103,7 +150,6 @@ export function setupSocket(server: http.Server): Server {
             data: { isOnline },
           });
 
-          // Broadcast status change to all connected clients
           io.emit('doctor-online-status', { doctorId, isOnline });
           console.log(`[Socket.io] Doctor ${doctorId} is now ${isOnline ? 'online' : 'offline'}`);
         } catch (error) {

@@ -214,7 +214,7 @@ export default function AppointmentsPage() {
                           </button>
                           
                           <button
-                            onClick={() => { setChatDoctor(appt.doctor); setChatRoomId(appt.roomId || `chat-${appt._id}`) }}
+                            onClick={() => { setChatDoctor(appt.doctor); setChatRoomId(appt.id || appt._id || '') }}
                             className="btn-secondary flex items-center gap-2 text-sm py-2 px-4 bg-white"
                           >
                             <MessageSquare className="w-4 h-4" /> Message

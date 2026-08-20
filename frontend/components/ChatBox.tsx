@@ -19,7 +19,7 @@ interface Message {
 interface ChatBoxProps {
   appointmentId: string;
   currentUser: { id: string; role: 'patient' | 'doctor' };
-  apiToken: string;
+  apiToken?: string;
 }
 
 export default function ChatBox({ appointmentId, currentUser, apiToken }: ChatBoxProps) {
@@ -28,12 +28,22 @@ export default function ChatBox({ appointmentId, currentUser, apiToken }: ChatBo
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const API_URL = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const isDoctor = currentUser.role === 'doctor';
+  
+  const effectiveToken = apiToken || (typeof window !== 'undefined' ? (
+    localStorage.getItem('ICH Meds_token') ||
+    localStorage.getItem('doctorToken') ||
+    localStorage.getItem('token') ||
+    localStorage.getItem('healthcare_token') ||
+    ''
+  ) : '');
+
   const fetchUrl = isDoctor 
     ? `${API_URL}/api/doctor/messages/${appointmentId}`
     : `${API_URL}/api/messages/${appointmentId}`;
@@ -43,40 +53,56 @@ export default function ChatBox({ appointmentId, currentUser, apiToken }: ChatBo
     : `${API_URL}/api/messages/upload`;
 
   useEffect(() => {
-    if (!apiToken) return;
+    // 1. Fetch Chat History if token is available
+    if (effectiveToken && appointmentId) {
+      const fetchHistory = async () => {
+        try {
+          const res = await axios.get(fetchUrl, {
+            headers: { Authorization: `Bearer ${effectiveToken}` }
+          });
+          if (res.data?.messages) {
+            setMessages(res.data.messages);
+          }
+        } catch (err) {
+          console.warn('Chat history notice:', err);
+        }
+      };
+      fetchHistory();
+    }
 
-    // 1. Fetch Chat History
-    const fetchHistory = async () => {
-      try {
-        const res = await axios.get(fetchUrl, {
-          headers: { Authorization: `Bearer ${apiToken}` }
-        });
-        setMessages(res.data.messages);
-      } catch (err) {
-        console.error('Failed to fetch chat history', err);
-      }
-    };
-    fetchHistory();
-
-    // 2. Setup Socket
-    const newSocket = io(API_URL);
+    // 2. Setup Socket Connection
+    const newSocket = io(API_URL, {
+      auth: { token: effectiveToken },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+    });
     setSocket(newSocket);
 
     newSocket.on('connect', () => {
+      setIsConnected(true);
+      console.log('[Socket] Connected to chat room:', appointmentId);
       newSocket.emit('join-room', appointmentId);
+    });
+
+    newSocket.on('disconnect', () => {
+      setIsConnected(false);
     });
 
     newSocket.on('new-message', (message: Message) => {
       setMessages(prev => {
         if (prev.find(m => m.id === message.id)) return prev;
-        return [...prev, message];
+        // Clean up temp optimistic message if any
+        const filtered = prev.filter(m => !(m.id.startsWith('temp-') && m.senderId === message.senderId && m.content === message.content));
+        return [...filtered, message];
       });
     });
 
     return () => {
       newSocket.disconnect();
     };
-  }, [appointmentId, apiToken, API_URL, fetchUrl]);
+  }, [appointmentId, effectiveToken, API_URL, fetchUrl]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -96,7 +122,7 @@ export default function ChatBox({ appointmentId, currentUser, apiToken }: ChatBo
         const res = await axios.post(uploadUrl, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${apiToken}`
+            Authorization: `Bearer ${effectiveToken}`
           }
         });
         fileUrl = res.data.fileUrl;
@@ -110,13 +136,27 @@ export default function ChatBox({ appointmentId, currentUser, apiToken }: ChatBo
       setFile(null);
     }
 
+    const contentText = newMessage.trim() || 'Sent an attachment';
+
     const payload = {
       appointmentId,
       senderId: currentUser.id,
       senderRole: currentUser.role,
-      content: newMessage.trim() || 'Sent an attachment',
+      content: contentText,
       fileUrl
     };
+
+    // Optimistically show message immediately
+    const optimisticMsg: Message = {
+      id: `temp-${Date.now()}`,
+      appointmentId,
+      senderId: currentUser.id,
+      senderRole: currentUser.role,
+      content: contentText,
+      fileUrl,
+      createdAt: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
 
     socket.emit('send-message', payload);
     setNewMessage('');
@@ -137,122 +177,133 @@ export default function ChatBox({ appointmentId, currentUser, apiToken }: ChatBo
     <div className="flex flex-col h-full bg-white rounded-2xl border border-surface-200 overflow-hidden shadow-sm">
       {/* Header */}
       <div className="p-4 border-b border-surface-200 bg-surface-50 flex items-center justify-between">
-        <div>
-          <h3 className="font-bold text-ink-800">Live Chat</h3>
-          <p className="text-xs text-ink-500">End-to-end encrypted messaging</p>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold">
+              {isDoctor ? 'P' : 'Dr'}
+            </div>
+            <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${isConnected ? 'bg-emerald-500' : 'bg-ink-300'}`} />
+          </div>
+          <div>
+            <h3 className="font-bold text-ink-700 text-sm">
+              {isDoctor ? 'Patient Consultation Chat' : 'Doctor Consultation Chat'}
+            </h3>
+            <p className="text-[12px] text-ink-400">
+              {isConnected ? 'Real-time Live Chat Connected' : 'Connecting live chat...'}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-surface-50/50 min-h-[300px]">
-        <AnimatePresence>
-          {messages.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-ink-400 text-sm">
-              No messages yet. Say hello!
-            </div>
-          ) : (
-            messages.map((msg, idx) => {
-              const isMe = msg.senderId === currentUser.id;
-              return (
-                <motion.div 
-                  key={msg.id || idx}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+      {/* Messages */}
+      <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-surface-50/30">
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center text-ink-400 p-6">
+            <p className="text-sm font-medium">No messages yet.</p>
+            <p className="text-xs mt-1">Send a message or upload clinical files to start the consultation.</p>
+          </div>
+        ) : (
+          messages.map((msg) => {
+            const isMe = msg.senderRole === currentUser.role || msg.senderId === currentUser.id;
+            return (
+              <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                <div
+                  className={`max-w-[75%] rounded-2xl p-3 text-sm shadow-sm ${
+                    isMe
+                      ? 'bg-primary-600 text-white rounded-tr-none'
+                      : 'bg-white border border-surface-200 text-ink-700 rounded-tl-none'
+                  }`}
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[11px] font-semibold text-ink-400 uppercase tracking-wider">
-                      {isMe ? 'You' : msg.senderRole}
-                    </span>
-                    <span className="text-[10px] text-ink-300">
-                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
+                  <p className="leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                   
-                  <div className={`max-w-[85%] rounded-2xl px-4 py-2 shadow-sm ${
-                    isMe 
-                      ? 'bg-primary-600 text-white rounded-tr-sm' 
-                      : 'bg-white border border-surface-200 text-ink-700 rounded-tl-sm'
-                  }`}>
-                    {msg.fileUrl && (
-                      <div className={`mb-2 p-2 rounded-xl border flex items-center gap-3 ${isMe ? 'bg-white/10 border-white/20' : 'bg-surface-50 border-surface-200'}`}>
-                        {msg.fileUrl.match(/\.(jpeg|jpg|gif|png)$/i) ? (
-                          <ImageIcon className={`w-6 h-6 shrink-0 ${isMe ? 'text-white' : 'text-primary-500'}`} />
-                        ) : (
-                          <FileText className={`w-6 h-6 shrink-0 ${isMe ? 'text-white' : 'text-primary-500'}`} />
-                        )}
-                        <a 
-                          href={`${API_URL}${msg.fileUrl}`} 
-                          target="_blank" 
+                  {/* Attached File Display */}
+                  {msg.fileUrl && (
+                    <div className="mt-2 pt-2 border-t border-white/20">
+                      {msg.fileUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                        <div className="rounded-lg overflow-hidden my-1 max-w-[200px]">
+                          <img
+                            src={msg.fileUrl.startsWith('http') ? msg.fileUrl : `${API_URL}${msg.fileUrl}`}
+                            alt="Attachment"
+                            className="w-full h-auto object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <a
+                          href={msg.fileUrl.startsWith('http') ? msg.fileUrl : `${API_URL}${msg.fileUrl}`}
+                          target="_blank"
                           rel="noreferrer"
-                          className="flex-1 truncate text-sm font-medium hover:underline"
+                          className={`flex items-center gap-2 p-2 rounded-lg text-xs font-semibold ${
+                            isMe ? 'bg-black/10 text-white' : 'bg-surface-100 text-primary-600'
+                          }`}
                         >
-                          View Attachment
+                          <FileText size={16} />
+                          <span className="truncate max-w-[150px]">View Attachment</span>
+                          <Download size={14} className="ml-auto" />
                         </a>
-                      </div>
-                    )}
-                    {msg.content && <p className="text-[14px] leading-relaxed break-words">{msg.content}</p>}
-                  </div>
-                </motion.div>
-              );
-            })
-          )}
-        </AnimatePresence>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <span className="text-[10px] text-ink-400 mt-1 px-1">
+                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            );
+          })
+        )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <div className="p-3 bg-white border-t border-surface-200">
-        {file && (
-          <div className="mb-3 p-2 bg-surface-50 border border-surface-200 rounded-xl flex items-center justify-between">
-            <div className="flex items-center gap-2 truncate">
-              <Paperclip className="w-4 h-4 text-primary-500 shrink-0" />
-              <span className="text-xs font-medium text-ink-600 truncate">{file.name}</span>
-            </div>
-            <button onClick={removeFile} className="text-red-500 text-xs font-bold px-2 hover:bg-red-50 rounded p-1 shrink-0">
-              Remove
-            </button>
+      {/* Upload Preview Banner */}
+      {file && (
+        <div className="p-2.5 px-4 bg-primary-50 border-t border-primary-100 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs font-semibold text-primary-800 truncate">
+            <Paperclip size={14} />
+            <span className="truncate max-w-[200px]">{file.name}</span>
+            <span className="text-[10px] text-primary-500 font-normal">
+              ({(file.size / 1024 / 1024).toFixed(2)} MB)
+            </span>
           </div>
-        )}
-        
-        <form onSubmit={handleSendMessage} className="flex items-end gap-2">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="p-3 text-ink-400 hover:text-primary-500 hover:bg-primary-50 rounded-full transition-colors shrink-0"
-            title="Attach file"
-          >
-            <Paperclip className="w-5 h-5" />
+          <button onClick={removeFile} className="text-primary-700 hover:text-red-600 text-xs font-bold px-2 py-0.5">
+            ✕ Remove
           </button>
-          
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-1 bg-surface-50 border border-surface-200 text-ink-800 text-[14px] rounded-full px-5 py-3 outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 transition-all"
-          />
-          
-          <button
-            type="submit"
-            disabled={(!newMessage.trim() && !file) || isUploading}
-            className={`p-3 rounded-full shrink-0 flex items-center justify-center transition-all ${
-              (!newMessage.trim() && !file) || isUploading
-                ? 'bg-surface-200 text-ink-400 cursor-not-allowed'
-                : 'bg-primary-600 text-white hover:bg-primary-700 shadow-md hover:shadow-lg'
-            }`}
-          >
-            {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-          </button>
-        </form>
-      </div>
+        </div>
+      )}
+
+      {/* Input Area */}
+      <form onSubmit={handleSendMessage} className="p-3 bg-white border-t border-surface-200 flex items-center gap-2">
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept="image/*,.pdf,.doc,.docx"
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="p-2.5 rounded-xl hover:bg-surface-100 text-ink-400 hover:text-ink-600 transition-colors"
+          title="Attach file or image"
+        >
+          <Paperclip size={18} />
+        </button>
+
+        <input
+          type="text"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          placeholder="Type a message..."
+          className="flex-1 bg-surface-50 border border-surface-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all text-ink-700"
+        />
+
+        <button
+          type="submit"
+          disabled={(!newMessage.trim() && !file) || isUploading}
+          className="p-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-40 disabled:hover:bg-primary-600 text-white rounded-xl shadow-soft transition-all active:scale-95"
+        >
+          {isUploading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+        </button>
+      </form>
     </div>
   );
 }
