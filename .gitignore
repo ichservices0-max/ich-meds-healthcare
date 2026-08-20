@@ -27,3 +27,4 @@ backend/prisma/migrations/
 # IDE
 .vscode/
 .idea/
+backend/serviceAccountKey.json  
