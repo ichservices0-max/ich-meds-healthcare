@@ -22,6 +22,7 @@ import doctorPatientsRoutes from './routes/doctorPatients';
 import doctorMessagesRoutes from './routes/doctorMessages';
 import precheckRoutes from './routes/precheck';
 import adminRoutes from './routes/admin';
+import prisma from './lib/prisma';
 
 // ─── Express App ──────────────────────────────────────────────────────────────
 const app = express();
