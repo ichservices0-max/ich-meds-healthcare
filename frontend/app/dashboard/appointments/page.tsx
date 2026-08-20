@@ -200,7 +200,7 @@ export default function AppointmentsPage() {
                       {(appt.status === 'WAITING' || appt.status === 'IN_PROGRESS') && (
                         <div className="flex flex-wrap items-center gap-3 mt-5 pt-5 border-t border-ink-100">
                           <Link
-                            href={`/dashboard/appointments/${appt.id || appt._id}/queue`}
+                            href={`/dashboard/appointments/queue?id=${appt.id || appt._id}`}
                             className="btn-primary flex items-center gap-2 text-sm py-2 px-4 bg-primary-600 text-white"
                           >
                             <Clock className="w-4 h-4" /> Live Queue Tracker
