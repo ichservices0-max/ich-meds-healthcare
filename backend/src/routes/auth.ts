@@ -17,7 +17,10 @@ const signToken = (id: string): string => {
 // ─── POST /api/auth/register ──────────────────────────────────────────────────
 router.post('/register', authIpLimiter, authAccountLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, email, phone, password } = req.body;
+    const name = req.body.name;
+    const email = req.body.email;
+    const phone = req.body.phone || req.body.mobile;
+    const password = req.body.password;
 
     // Validate required fields
     if (!name || !email || !phone || !password) {
