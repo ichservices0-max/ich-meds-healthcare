@@ -10,7 +10,7 @@ const nextConfig = {
     ],
   },
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ich-meds-healthcare-production-8cf7.up.railway.app'
     return [{ source: '/api/:path*', destination: `${backendUrl}/api/:path*` }]
   },
   compiler: {
