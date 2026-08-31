@@ -1,0 +1,7 @@
+{
+  "build": {
+    "command": "cd backend && npm install && npm run build",
+    "outputDir": "backend"
+  },
+  "start": "cd backend && npm start"
+}
