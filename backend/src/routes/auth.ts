@@ -18,7 +18,7 @@ const signToken = (id: string): string => {
 router.post('/register', authIpLimiter, authAccountLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const name = req.body.name;
-    const email = req.body.email;
+    const email = req.body.email?.trim()?.toLowerCase();
     const phone = req.body.phone || req.body.mobile;
     const password = req.body.password;
 
@@ -79,7 +79,9 @@ router.post('/register', authIpLimiter, authAccountLimiter, async (req: Request,
 // ─── POST /api/auth/login ─────────────────────────────────────────────────────
 router.post('/login', authIpLimiter, authAccountLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const rawEmail = req.body.email;
+const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
+const password = req.body.password;
 
     if (!email || !password) {
       res.status(400).json({ error: 'Email and password are required.' });
