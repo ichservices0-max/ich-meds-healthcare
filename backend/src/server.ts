@@ -22,6 +22,7 @@ import doctorPatientsRoutes from './routes/doctorPatients';
 import doctorMessagesRoutes from './routes/doctorMessages';
 import precheckRoutes from './routes/precheck';
 import adminRoutes from './routes/admin';
+import paymentRoutes from './routes/payment';
 import prisma from './lib/prisma';
 
 // ─── Express App ──────────────────────────────────────────────────────────────
@@ -127,6 +128,9 @@ mount('/admin', adminRoutes);
 
 // Precheck routes
 mount('/precheck', precheckRoutes);
+
+// Payment routes
+mount('/payment', paymentRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.use((_req, res) => {
