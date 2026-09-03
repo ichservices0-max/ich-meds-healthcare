@@ -1,6 +1,5 @@
 // payment.ts – PayU integration route
 import { Router, Request, Response } from 'express';
-import axios from 'axios';
 
 const router = Router();
 
@@ -25,11 +24,14 @@ router.post('/init', async (req: Request, res: Response) => {
     };
 
     const payuUrl = `${process.env.PAYU_BASE_URL}/payment/op/submit`;
-    const response = await axios.post(payuUrl, payload, {
+    const response = await fetch(payuUrl, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
 
-    res.json(response.data);
+    const data = await response.json();
+    res.json(data);
   } catch (err) {
     console.error('PayU init error:', err);
     res.status(500).json({ error: 'Payment initialization failed' });
