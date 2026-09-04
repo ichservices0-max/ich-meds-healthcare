@@ -2,7 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
 import { getToken, removeToken } from './auth'
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
