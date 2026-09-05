@@ -10,7 +10,7 @@ const router = Router();
 
 // ─── Helper: sign JWT ─────────────────────────────────────────────────────────
 const signToken = (id: string): string => {
-  const secret = process.env.JWT_SECRET as string;
+  const secret = process.env.JWT_SECRET || 'hc-jwt-secret-2026-antigravity-secure-key-xK9mP2';
   return jwt.sign({ id }, secret, { expiresIn: '7d' });
 };
 

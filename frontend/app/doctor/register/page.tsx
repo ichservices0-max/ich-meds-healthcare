@@ -109,7 +109,7 @@ export default function DoctorRegister() {
         }
       });
 
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctor/auth/register`, data, {
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'https://backend-five-ashy-56.vercel.app'}/api/doctor/auth/register`, data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       

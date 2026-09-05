@@ -38,7 +38,7 @@ export const DoctorAuthProvider = ({ children }: { children: ReactNode }) => {
       const token = localStorage.getItem('doctorToken');
       if (token) {
         try {
-          const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctor/auth/me`, {
+          const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'https://backend-five-ashy-56.vercel.app'}/api/doctor/auth/me`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           setDoctor(res.data.doctor);

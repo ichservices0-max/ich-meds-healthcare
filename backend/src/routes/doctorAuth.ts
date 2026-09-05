@@ -17,7 +17,8 @@ const upload = multer({ storage });
 
 // Helper to generate JWT
 const generateToken = (id: string, role: string) => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET as string, {
+  const secret = process.env.JWT_SECRET || 'hc-jwt-secret-2026-antigravity-secure-key-xK9mP2';
+  return jwt.sign({ id, role }, secret, {
     expiresIn: '7d',
   });
 };
