@@ -5,7 +5,7 @@ declare global {
   var __prisma: PrismaClient | undefined;
 }
 
-const dbUrl = process.env.DATABASE_URL || 'postgresql://healthcare_app:HealthCare2026SecurePass123@db.umzmsvsardudkjpvdogx.supabase.co:5432/postgres';
+const dbUrl = process.env.DATABASE_URL || 'postgresql://healthcare_app:HealthCare2026SecurePass123@db.umzmsvsardudkjpvdogx.supabase.co:6543/postgres?pgbouncer=true&connection_limit=1';
 
 const prisma: PrismaClient =
   global.__prisma ??
