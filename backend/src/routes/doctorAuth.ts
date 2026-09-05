@@ -162,7 +162,7 @@ router.post('/login', authIpLimiter, authAccountLimiter, async (req, res) => {
     res.json({ token, doctor: doctorData });
   } catch (error: any) {
     console.error('Doctor Login Error:', error);
-    res.status(500).json({ error: 'Server error during login' });
+    res.status(500).json({ error: error.message || 'Server error during login', details: String(error) });
   }
 });
 
