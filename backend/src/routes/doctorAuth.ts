@@ -108,11 +108,11 @@ router.post(
       const doctor = await prisma.doctor.create({
         data: {
           name, email, phone, passwordHash, registrationNumber, qualification, degree,
-          experience: parseInt(experience) || 0,
+          experience: isNaN(parseInt(experience, 10)) ? 0 : parseInt(experience, 10),
           specialty, clinicName, clinicAddress, city, state, country,
-          lat: parseFloat(lat) || 0,
-          lng: parseFloat(lng) || 0,
-          fee: parseFloat(fee) || 0,
+          lat: isNaN(parseFloat(lat)) ? 0 : parseFloat(lat),
+          lng: isNaN(parseFloat(lng)) ? 0 : parseFloat(lng),
+          fee: isNaN(parseFloat(fee)) ? 0 : parseFloat(fee),
           imageUrl,
           documents,
           verificationStatus: 'PENDING',
