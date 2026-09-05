@@ -38,7 +38,7 @@ export default function DoctorLogin() {
     setIsLoading(true);
 
     try {
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'https://backend-five-ashy-56.vercel.app'}/api/doctor/auth/login`, {
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'https://ich-meds-healthcare-production.up.railway.app'}/api/doctor/auth/login`, {
         email,
         password,
       });

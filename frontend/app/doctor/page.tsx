@@ -19,7 +19,7 @@ export default function DoctorDashboard() {
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('doctorToken');
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'https://backend-five-ashy-56.vercel.app'}/api/doctor/appointments`, {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'https://ich-meds-healthcare-production.up.railway.app'}/api/doctor/appointments`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = res.data;
