@@ -21,6 +21,7 @@ ENV NODE_ENV=production
 
 COPY package*.json ./
 RUN npm install --only=production
+RUN npm i -g @dietrichgebert/ponytail
 
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
