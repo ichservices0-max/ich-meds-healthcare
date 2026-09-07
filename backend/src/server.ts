@@ -109,19 +109,19 @@ const mount = (routePath: string, ...handlers: any[]) => {
 };
 
 mount('/auth', authRoutes);
-mount('/doctors', publicLimiter, doctorRoutes);
-mount('/appointments', apiLimiter, appointmentRoutes);
-mount('/records', apiLimiter, recordRoutes);
-mount('/notifications', apiLimiter, notificationRoutes);
-mount('/messages', apiLimiter, messageRoutes);
+mount('/doctors', doctorRoutes);
+mount('/appointments', appointmentRoutes);
+mount('/records', recordRoutes);
+mount('/notifications', notificationRoutes);
+mount('/messages', messageRoutes);
 
 // Doctor specific routes
 mount('/doctor/auth', doctorAuthRoutes);
-mount('/doctor/profile', apiLimiter, doctorProfileRoutes);
-mount('/doctor/appointments', apiLimiter, doctorAppointmentsRoutes);
-mount('/doctor/reviews', publicLimiter, doctorReviewsRoutes);
-mount('/doctor/patients', apiLimiter, doctorPatientsRoutes);
-mount('/doctor/messages', apiLimiter, doctorMessagesRoutes);
+mount('/doctor/profile', doctorProfileRoutes);
+mount('/doctor/appointments', doctorAppointmentsRoutes);
+mount('/doctor/reviews', doctorReviewsRoutes);
+mount('/doctor/patients', doctorPatientsRoutes);
+mount('/doctor/messages', doctorMessagesRoutes);
 
 // Admin routes
 mount('/admin', adminRoutes);
