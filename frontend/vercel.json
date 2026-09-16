@@ -4,6 +4,6 @@
   "framework": "nextjs",
   "env": {
     "NEXT_PUBLIC_PORTAL": "patient",
-    "NEXT_PUBLIC_API_URL": "https://backend-five-ashy-56.vercel.app"
+    "NEXT_PUBLIC_API_URL": "https://www.ichmeds.in"
   }
 }

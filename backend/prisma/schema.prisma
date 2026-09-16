@@ -18,16 +18,16 @@ datasource db {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Patient {
-  id             String          @id @default(uuid())
-  name           String
-  email          String          @unique
-  phone          String          @unique
-  passwordHash   String
-  dateOfBirth    String?
-  bloodGroup     String?
-  address        String?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  phone        String   @unique
+  passwordHash String
+  dateOfBirth  String?
+  bloodGroup   String?
+  address      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   appointments   Appointment[]
   records        MedicalRecord[]
@@ -44,12 +44,12 @@ model Patient {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Doctor {
-  id                 String             @id @default(uuid())
+  id                 String    @id @default(uuid())
   name               String
-  email              String             @unique
-  phone              String             @unique
+  email              String    @unique
+  phone              String    @unique
   passwordHash       String
-  registrationNumber String             @unique
+  registrationNumber String    @unique
   qualification      String
   degree             String
   experience         Int
@@ -61,26 +61,26 @@ model Doctor {
   country            String
   lat                Float
   lng                Float
-  rating             Float              @default(0)
-  reviewCount        Int                @default(0)
+  rating             Float     @default(0)
+  reviewCount        Int       @default(0)
   fee                Float
   bio                String?
   imageUrl           String?
-  documents          Json?              // For storing URLs of uploaded certificates
-  languagesSpoken    String[]           @default([])
-  verificationStatus String             @default("PENDING")
-  isOnline           Boolean            @default(false)
-  membershipStatus   String             @default("INACTIVE")
+  documents          Json? // For storing URLs of uploaded certificates
+  languagesSpoken    String[]  @default([])
+  verificationStatus String    @default("PENDING")
+  isOnline           Boolean   @default(false)
+  membershipStatus   String    @default("INACTIVE")
   membershipPaidAt   DateTime?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  sessions           DoctorSession[]
-  appointments       Appointment[]
-  reviews            Review[]
-  notifications      Notification[]
-  passwordResets     DoctorPasswordReset[]
-  prescriptions      Prescription[]
+  sessions       DoctorSession[]
+  appointments   Appointment[]
+  reviews        Review[]
+  notifications  Notification[]
+  passwordResets DoctorPasswordReset[]
+  prescriptions  Prescription[]
 
   @@map("doctors")
 }
@@ -90,14 +90,14 @@ model Doctor {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model DoctorSession {
-  id           String        @id @default(uuid())
+  id           String   @id @default(uuid())
   doctorId     String
   date         DateTime
-  sessionType  String        // 'MORNING' or 'EVENING'
-  startTime    String        // e.g. '10:00 AM'
-  endTime      String        // e.g. '01:00 PM'
+  sessionType  String // 'MORNING' or 'EVENING'
+  startTime    String // e.g. '10:00 AM'
+  endTime      String // e.g. '01:00 PM'
   maxTokens    Int
-  currentToken Int           @default(0) // 0 means no one served yet
+  currentToken Int      @default(0) // 0 means no one served yet
 
   doctor       Doctor        @relation(fields: [doctorId], references: [id], onDelete: Cascade)
   appointments Appointment[]
@@ -109,27 +109,50 @@ model DoctorSession {
 // ─────────────────────────────────────────────────────────────────────────────
 // Appointment
 // ─────────────────────────────────────────────────────────────────────────────
-
 model Appointment {
-  id          String            @id @default(uuid())
-  patientId   String
-  doctorId    String
-  sessionId   String
-  tokenNumber Int
-  status      String            @default("WAITING") // WAITING, IN_PROGRESS, COMPLETED, CANCELLED
-  notes       String?
-  type        String            // 'in-person' | 'video'
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  notes           String?  // optional notes field
+  tokenNumber   Int    @default(0)
+  id            String    @id @default(uuid())
+  type           String?   @default("in-person")
+  doctorId      String
+  patientId     String
+  sessionId     String
+  status        String    @default("PENDING")
+  paymentStatus String    @default("UNPAID")
+  fee           Float?
+  scheduledAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  patient     Patient           @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  doctor      Doctor            @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  session     DoctorSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  messages    Message[]
-  prescription Prescription?
-  preCheck    PreCheck?
+  doctor  Doctor        @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  session DoctorSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // Reverse relations
+  payments      Payment[]
+  preCheck      PreCheck?
+  messages      Message[]
+  prescriptions Prescription[]
 
   @@map("appointments")
+}
+
+model Payment {
+  txnid         String   @id
+  appointmentId String?
+  amount        Float
+  currency      String   @default("INR")
+  status        String   @default("INITIATED") // INITIATED, SUCCESS, FAILED
+  mode          String   @default("PAYU")
+  payuRequest   Json?
+  payuResponse  Json?
+  mihpayid      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@map("payments")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -137,15 +160,15 @@ model Appointment {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model PreCheck {
-  id            String      @id @default(uuid())
-  appointmentId String      @unique
-  symptoms      String?
-  vitalSigns    Json?       // { temp, bp, heartRate, weight }
+  id             String   @id @default(uuid())
+  appointmentId  String   @unique
+  symptoms       String?
+  vitalSigns     Json? // { temp, bp, heartRate, weight }
   medicalHistory String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
   @@map("pre_checks")
 }
@@ -155,15 +178,15 @@ model PreCheck {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Message {
-  id            String      @id @default(uuid())
+  id            String   @id @default(uuid())
   appointmentId String
   senderId      String
   senderRole    String
   content       String?
   fileUrl       String?
-  createdAt     DateTime    @default(now())
+  createdAt     DateTime @default(now())
 
-  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
   @@map("messages")
 }
@@ -173,16 +196,16 @@ model Message {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model MedicalRecord {
-  id        String     @id @default(uuid())
+  id        String   @id @default(uuid())
   patientId String
   type      String
   fileName  String
   fileUrl   String
   fileSize  Int
   notes     String?
-  createdAt DateTime   @default(now())
+  createdAt DateTime @default(now())
 
-  patient   Patient    @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@map("medical_records")
 }
@@ -192,15 +215,15 @@ model MedicalRecord {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Review {
-  id        String   @id @default(uuid())
-  doctorId  String
-  patientId String
-  rating    Int
+  id         String   @id @default(uuid())
+  doctorId   String
+  patientId  String
+  rating     Int
   reviewText String
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
-  doctor    Doctor   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  patient   Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor  Doctor  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@map("reviews")
 }
@@ -219,8 +242,8 @@ model Notification {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  patient   Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  doctor    Doctor?  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient Patient? @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor  Doctor?  @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
 }
@@ -237,7 +260,7 @@ model PasswordReset {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
 
-  patient   Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@map("password_resets")
 }
@@ -250,7 +273,7 @@ model DoctorPasswordReset {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
 
-  doctor    Doctor    @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
   @@map("doctor_password_resets")
 }
@@ -260,18 +283,18 @@ model DoctorPasswordReset {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Prescription {
-  id            String      @id @default(uuid())
-  appointmentId String      @unique
+  id            String   @id @default(uuid())
+  appointmentId String   @unique
   doctorId      String
   patientId     String
   imageUrl      String?
-  digitalText   String?     // Extracted by AI
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  digitalText   String? // Extracted by AI
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
-  doctor        Doctor      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  patient       Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  doctor      Doctor      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  patient     Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@map("prescriptions")
 }
@@ -286,6 +309,6 @@ model Admin {
   passwordHash String
   name         String
   createdAt    DateTime @default(now())
-  
+
   @@map("admins")
 }

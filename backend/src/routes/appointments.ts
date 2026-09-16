@@ -106,7 +106,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
           },
         },
         session: true,
-        prescription: true,
+        prescriptions: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -135,7 +135,7 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
       include: {
         doctor: true,
         session: true,
-        prescription: true,
+        prescriptions: true,
         messages: {
           orderBy: { createdAt: 'asc' },
         },
