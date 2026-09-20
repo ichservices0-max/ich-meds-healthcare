@@ -4,8 +4,9 @@ import { useDoctorAuth } from '@/contexts/DoctorAuthContext';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
-import { FiChevronLeft, FiChevronRight, FiPlus, FiX, FiClock, FiUsers } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiPlus, FiX, FiClock, FiUsers, FiCheckCircle } from 'react-icons/fi';
 import { DoctorSession } from '@/lib/api';
+import { isSameCalendarDay, formatDateToYYYYMMDD } from '@/lib/dateUtils';
 
 function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
@@ -34,6 +35,7 @@ export default function DoctorCalendar() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<{ title: string; message: string } | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (doctor) fetchSessions();
@@ -68,10 +70,10 @@ export default function DoctorCalendar() {
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
 
+  // Filter sessions using normalized calendar day comparison
   const selectedDateSessions = sessions.filter(s => {
     if (!selectedDate) return false;
-    const [year, month, day] = s.date.split('T')[0].split('-');
-    return parseInt(day) === selectedDate && parseInt(month) - 1 === currentMonth && parseInt(year) === currentYear;
+    return isSameCalendarDay(s.date, currentYear, currentMonth, selectedDate);
   });
 
   const existingSessionTypes = selectedDateSessions.map(s => s.sessionType);
@@ -79,22 +81,21 @@ export default function DoctorCalendar() {
   const addSession = async () => {
     if (!selectedDate || isSaving) return;
     setFormError(null);
+    setSuccessMessage(null);
     setIsSaving(true);
     
-    // YYYY-MM-DD format sent directly to preserve calendar date without timezone shifts
     const targetDate = new Date(currentYear, currentMonth, selectedDate);
-    
     if (targetDate < new Date(today.setHours(0,0,0,0))) {
       alert("Cannot add a session in the past");
       setIsSaving(false);
       return;
     }
 
-    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
+    const dateStr = formatDateToYYYYMMDD(currentYear, currentMonth, selectedDate);
 
     try {
       const token = localStorage.getItem('doctorToken');
-      await axios.post(
+      const res = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/doctor/appointments/sessions`,
         { 
           date: dateStr, 
@@ -105,19 +106,48 @@ export default function DoctorCalendar() {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      await fetchSessions();
+
+      // On 201 Created
+      const created = res.data;
+      if (created) {
+        setSessions(prev => {
+          const filtered = prev.filter(s => s.id !== created.id);
+          return [...filtered, created];
+        });
+      }
+      setSuccessMessage('Session created successfully.');
       setShowAddSession(false);
-      setFormError(null);
+      fetchSessions();
     } catch (err: any) {
       console.error('Add session error:', err);
       if (err.response?.status === 409) {
+        // If existingSession is returned in 409 response, add it to list so it is immediately visible
+        const existing = err.response?.data?.existingSession;
+        if (existing) {
+          setSessions(prev => {
+            const exists = prev.some(s => s.id === existing.id);
+            if (!exists) return [...prev, existing];
+            return prev;
+          });
+        }
         setFormError({
           title: 'Session already exists',
           message: err.response?.data?.error || 'A session already exists for this date and session type.'
         });
+        fetchSessions();
+      } else if (err.response?.status === 400) {
+        setFormError({
+          title: 'Validation Error',
+          message: err.response?.data?.error || 'Missing or invalid fields.'
+        });
+      } else if (err.response?.status === 401) {
+        setFormError({
+          title: 'Session Expired',
+          message: 'Your doctor session has expired. Please log in again.'
+        });
       } else {
         setFormError({
-          title: 'Error adding session',
+          title: 'Server Error',
           message: err.response?.data?.error || 'Server error adding session. Please try again.'
         });
       }
@@ -169,12 +199,16 @@ export default function DoctorCalendar() {
                 const isSelected = selectedDate === day;
                 const past = isPastDate(day);
                 const todayFlag = isToday(day);
-                const hasSession = sessions.some(s => new Date(s.date).getDate() === day && new Date(s.date).getMonth() === currentMonth);
+                const hasSession = sessions.some(s => isSameCalendarDay(s.date, currentYear, currentMonth, day));
                 
                 return (
                   <button key={day}
                     disabled={past}
-                    onClick={() => setSelectedDate(day)}
+                    onClick={() => {
+                      setSelectedDate(day);
+                      setSuccessMessage(null);
+                      setFormError(null);
+                    }}
                     className={`aspect-square flex flex-col items-center justify-center text-sm transition-all rounded-xl relative w-full
                       ${isSelected ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30 font-bold scale-105' :
                       past ? 'bg-surface-50 text-surface-300 cursor-not-allowed' :
@@ -202,6 +236,13 @@ export default function DoctorCalendar() {
             </div>
 
             <div className="p-6 space-y-4 flex-1 bg-white">
+              {successMessage && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
+                  <FiCheckCircle className="text-emerald-600 shrink-0" size={16} />
+                  <span className="font-semibold">{successMessage}</span>
+                </div>
+              )}
+
               {!selectedDate ? (
                 <p className="text-sm text-ink-400 text-center py-8">Click a date to manage sessions</p>
               ) : (

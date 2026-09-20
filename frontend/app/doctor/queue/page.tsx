@@ -4,9 +4,11 @@ import { useDoctorAuth } from '@/contexts/DoctorAuthContext';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiUsers, FiClock, FiVideo, FiCheckCircle, FiChevronRight } from 'react-icons/fi';
+import { FiUsers, FiClock, FiVideo, FiCheckCircle, FiChevronRight, FiCalendar, FiPlus } from 'react-icons/fi';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { DoctorSession } from '@/lib/api';
+import { isSameCalendarDay } from '@/lib/dateUtils';
 
 const VideoConsultation = dynamic(() => import('@/components/VideoConsultation'), {
   ssr: false,
@@ -36,22 +38,37 @@ export default function QueueManager() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      // Filter sessions for today (using local date string matching)
+      // Filter sessions for today using normalized calendar day comparison
       const now = new Date();
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth();
       const currentDay = now.getDate();
+      const currentHour = now.getHours();
       
-      const todaysSessions = (res.data || []).filter((s: any) => {
-        const [year, month, day] = s.date.split('T')[0].split('-');
-        return parseInt(year) === currentYear && parseInt(month) - 1 === currentMonth && parseInt(day) === currentDay;
-      });
+      const todaysSessions = (res.data || []).filter((s: any) =>
+        isSameCalendarDay(s.date, currentYear, currentMonth, currentDay)
+      );
+
       setSessions(todaysSessions);
-      if (todaysSessions.length > 0 && !selectedSessionId) {
-        setSelectedSessionId(todaysSessions[0].id);
+
+      // Select active session intelligently (preserve existing selection if still valid, or pick based on time of day)
+      if (todaysSessions.length > 0) {
+        setSelectedSessionId(prev => {
+          if (prev && todaysSessions.some((s: any) => s.id === prev)) {
+            return prev;
+          }
+          // If afternoon/evening (>= 14:00) and evening session exists, prefer evening
+          if (currentHour >= 14) {
+            const evening = todaysSessions.find((s: any) => s.sessionType === 'EVENING');
+            if (evening) return evening.id;
+          }
+          return todaysSessions[0].id;
+        });
+      } else {
+        setSelectedSessionId(null);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to fetch doctor queue sessions:', err);
     }
   };
 
@@ -98,10 +115,20 @@ export default function QueueManager() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Sidebar: Today's Sessions */}
         <div className="space-y-4">
-          <h3 className="font-bold text-ink-600 pl-1">Today's Sessions</h3>
+          <div className="flex justify-between items-center pl-1">
+            <h3 className="font-bold text-ink-600">Today's Sessions</h3>
+            <Link href="/doctor/calendar" className="text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1">
+              <FiCalendar size={13} />
+              <span>Calendar</span>
+            </Link>
+          </div>
           {sessions.length === 0 ? (
-            <div className="premium-card text-center py-8">
+            <div className="premium-card text-center py-8 space-y-3">
               <p className="text-ink-400 text-sm">No sessions scheduled for today.</p>
+              <Link href="/doctor/calendar" className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-50 text-primary-700 text-xs font-bold hover:bg-primary-100 transition-colors">
+                <FiPlus size={14} />
+                <span>Create Session</span>
+              </Link>
             </div>
           ) : (
             sessions.map(session => (

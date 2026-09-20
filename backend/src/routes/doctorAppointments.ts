@@ -142,27 +142,59 @@ router.post('/sessions', authenticateDoctor, async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    const parsedTokens = parseInt(maxTokens, 10);
+    if (isNaN(parsedTokens) || parsedTokens <= 0) {
+      return res.status(400).json({ error: 'Invalid maxTokens value. Must be a positive number.' });
+    }
+
     // Preserve calendar date consistently without timezone shifting
-    const sessionDate = new Date(typeof date === 'string' && !date.includes('T') ? `${date}T00:00:00.000Z` : date);
+    const dateStr = typeof date === 'string' ? date.split('T')[0] : new Date(date).toISOString().split('T')[0];
+    const sessionDate = new Date(`${dateStr}T00:00:00.000Z`);
 
-    const session = await prisma.doctorSession.create({
-      data: {
-        doctorId: req.user.id,
-        date: sessionDate,
-        sessionType,
-        startTime,
-        endTime,
-        maxTokens: parseInt(maxTokens, 10),
-        currentToken: 0,
-      },
-    });
+    try {
+      const session = await prisma.doctorSession.create({
+        data: {
+          doctorId: req.user.id,
+          date: sessionDate,
+          sessionType,
+          startTime,
+          endTime,
+          maxTokens: parsedTokens,
+          currentToken: 0,
+        },
+        include: {
+          appointments: {
+            orderBy: { tokenNumber: 'asc' }
+          }
+        }
+      });
 
-    res.status(201).json(session);
+      return res.status(201).json(session);
+    } catch (createError: any) {
+      if (createError?.code === 'P2002') {
+        // Fetch existing session for the authenticated doctor
+        const existingSession = await prisma.doctorSession.findFirst({
+          where: {
+            doctorId: req.user.id,
+            date: sessionDate,
+            sessionType,
+          },
+          include: {
+            appointments: {
+              orderBy: { tokenNumber: 'asc' }
+            }
+          }
+        });
+
+        return res.status(409).json({
+          error: 'A session already exists for this date and session type.',
+          existingSession: existingSession || undefined,
+        });
+      }
+      throw createError;
+    }
   } catch (error: any) {
     console.error('Add Session Error:', error);
-    if (error?.code === 'P2002') {
-      return res.status(409).json({ error: 'A session already exists for this date and session type.' });
-    }
     res.status(500).json({ error: 'Server error adding session' });
   }
 });
