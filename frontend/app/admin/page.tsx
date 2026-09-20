@@ -30,7 +30,7 @@ export default function AdminDashboard() {
         return;
       }
 
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/doctors`, {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/admin/doctors`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDoctors(res.data.data);
@@ -51,7 +51,7 @@ export default function AdminDashboard() {
     try {
       const token = localStorage.getItem('adminToken');
       await axios.patch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/doctors/${id}/verify`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/admin/doctors/${id}/verify`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );

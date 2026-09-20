@@ -46,7 +46,7 @@ export default function DoctorDashboard() {
   const updateAppointmentStatus = async (id: string, status: string) => {
     try {
       const token = localStorage.getItem('doctorToken');
-      await axios.put(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctor/appointments/${id}/status`, 
+      await axios.put(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/doctor/appointments/${id}/status`, 
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );

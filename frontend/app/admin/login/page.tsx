@@ -16,7 +16,7 @@ export default function AdminLogin() {
     setError('');
 
     try {
-      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/admin/auth/login`, {
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/admin/auth/login`, {
         email,
         password
       });

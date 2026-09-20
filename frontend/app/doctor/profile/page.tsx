@@ -44,7 +44,7 @@ export default function DoctorProfile() {
     try {
       const token = localStorage.getItem('doctorToken');
       const res = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctor/profile/update`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/doctor/profile/update`,
         form,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -82,7 +82,7 @@ export default function DoctorProfile() {
     try {
       const token = localStorage.getItem('doctorToken');
       await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctor/profile/change-password`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/doctor/profile/change-password`,
         {
           currentPassword: passwordForm.current,
           newPassword: passwordForm.newPass,

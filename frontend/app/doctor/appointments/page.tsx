@@ -34,7 +34,7 @@ export default function DoctorAppointments() {
   const fetchAppointments = async () => {
     try {
       const token = localStorage.getItem('doctorToken');
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctor/appointments`, {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/doctor/appointments`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAppointments(res.data);
@@ -46,7 +46,7 @@ export default function DoctorAppointments() {
   const updateStatus = async (id: string, status: string) => {
     try {
       const token = localStorage.getItem('doctorToken');
-      await axios.put(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctor/appointments/${id}/status`, 
+      await axios.put(`${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/doctor/appointments/${id}/status`, 
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );

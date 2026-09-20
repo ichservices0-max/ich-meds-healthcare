@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { DoctorAuthProvider, useDoctorAuth } from '@/contexts/DoctorAuthContext';
 import { usePathname } from 'next/navigation';
@@ -57,7 +57,7 @@ function DoctorHeader({ pathname }: { pathname: string }) {
             <button onClick={logout} className="btn-ghost px-3 py-1.5 text-[13px] hidden sm:block">Logout</button>
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-electric to-primary flex items-center justify-center text-white font-bold text-sm shadow-sm border-2 border-white cursor-pointer hover:scale-105 transition-transform overflow-hidden">
               {doctor?.imageUrl ? (
-                <img src={doctor.imageUrl.startsWith('http') ? doctor.imageUrl : `http://localhost:5000${doctor.imageUrl}`} alt="Profile" className="w-full h-full object-cover" />
+                <img src={doctor.imageUrl.startsWith('http') ? doctor.imageUrl : `https://api.ichmeds.in${doctor.imageUrl}`} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 doctor?.name?.[0] || 'D'
               )}

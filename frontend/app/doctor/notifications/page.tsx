@@ -40,7 +40,7 @@ export default function DoctorNotifications() {
     try {
       const token = localStorage.getItem('doctorToken');
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/notifications/doctor`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/notifications/doctor`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setNotifications(res.data);

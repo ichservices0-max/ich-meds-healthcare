@@ -19,7 +19,7 @@ export default function DoctorReviews() {
     try {
       const token = localStorage.getItem('doctorToken');
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctor/reviews`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/doctor/reviews`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setReviews(res.data);

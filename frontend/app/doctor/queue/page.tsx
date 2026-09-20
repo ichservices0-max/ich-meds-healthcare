@@ -32,7 +32,7 @@ export default function QueueManager() {
     try {
       const token = localStorage.getItem('doctorToken');
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctor/appointments/sessions`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/doctor/appointments/sessions`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       
@@ -61,7 +61,7 @@ export default function QueueManager() {
     try {
       const token = localStorage.getItem('doctorToken');
       await axios.patch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctor/appointments/sessions/${selectedSessionId}/action`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/doctor/appointments/sessions/${selectedSessionId}/action`,
         { action, tokenNumber },
         { headers: { Authorization: `Bearer ${token}` } }
       );

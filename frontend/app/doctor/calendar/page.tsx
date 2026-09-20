@@ -42,7 +42,7 @@ export default function DoctorCalendar() {
     try {
       const token = localStorage.getItem('doctorToken');
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctor/appointments/sessions`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/doctor/appointments/sessions`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setSessions(res.data || []);
@@ -91,7 +91,7 @@ export default function DoctorCalendar() {
     try {
       const token = localStorage.getItem('doctorToken');
       await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/doctor/appointments/sessions`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.ichmeds.in'}/api/doctor/appointments/sessions`,
         { 
           date: dateStr, 
           sessionType: newSession.sessionType,
