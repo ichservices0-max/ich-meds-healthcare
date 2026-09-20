@@ -33,6 +33,7 @@ export default function DoctorCalendar() {
     maxTokens: '20'
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState<{ title: string; message: string } | null>(null);
 
   useEffect(() => {
     if (doctor) fetchSessions();
@@ -73,11 +74,14 @@ export default function DoctorCalendar() {
     return parseInt(day) === selectedDate && parseInt(month) - 1 === currentMonth && parseInt(year) === currentYear;
   });
 
+  const existingSessionTypes = selectedDateSessions.map(s => s.sessionType);
+
   const addSession = async () => {
-    if (!selectedDate) return;
+    if (!selectedDate || isSaving) return;
+    setFormError(null);
     setIsSaving(true);
     
-    // YYYY-MM-DD format
+    // YYYY-MM-DD format sent directly to preserve calendar date without timezone shifts
     const targetDate = new Date(currentYear, currentMonth, selectedDate);
     
     if (targetDate < new Date(today.setHours(0,0,0,0))) {
@@ -101,11 +105,22 @@ export default function DoctorCalendar() {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      fetchSessions();
+      await fetchSessions();
       setShowAddSession(false);
+      setFormError(null);
     } catch (err: any) {
-      console.error(err);
-      alert(err.response?.data?.error || "Error adding session");
+      console.error('Add session error:', err);
+      if (err.response?.status === 409) {
+        setFormError({
+          title: 'Session already exists',
+          message: err.response?.data?.error || 'A session already exists for this date and session type.'
+        });
+      } else {
+        setFormError({
+          title: 'Error adding session',
+          message: err.response?.data?.error || 'Server error adding session. Please try again.'
+        });
+      }
     } finally {
       setIsSaving(false);
     }
@@ -216,24 +231,56 @@ export default function DoctorCalendar() {
                   )}
 
                   {!showAddSession ? (
-                    <button onClick={() => setShowAddSession(true)}
+                    <button onClick={() => {
+                      setShowAddSession(true);
+                      setFormError(null);
+                      if (existingSessionTypes.includes('MORNING') && !existingSessionTypes.includes('EVENING')) {
+                        setNewSession(s => ({ ...s, sessionType: 'EVENING', startTime: '05:00 PM', endTime: '08:00 PM' }));
+                      } else {
+                        setNewSession(s => ({ ...s, sessionType: 'MORNING', startTime: '10:00 AM', endTime: '01:00 PM' }));
+                      }
+                    }}
                       className="w-full py-3.5 border-2 border-dashed border-surface-200 text-ink-500 rounded-2xl text-sm font-semibold hover:border-primary-400 hover:text-primary-600 hover:bg-primary-50 transition-all flex items-center justify-center space-x-2">
                       <FiPlus size={18} />
                       <span>Create Session</span>
                     </button>
                   ) : (
                     <div className="border border-primary-200 rounded-2xl p-5 bg-primary-50 space-y-4">
-                      <p className="text-sm font-bold text-ink-700">New Token Session</p>
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm font-bold text-ink-700">New Token Session</p>
+                        <button onClick={() => { setShowAddSession(false); setFormError(null); }} className="text-ink-400 hover:text-ink-600 p-1">
+                          <FiX size={16} />
+                        </button>
+                      </div>
+
+                      {formError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 space-y-0.5">
+                          <p className="font-bold text-red-800">{formError.title}</p>
+                          <p>{formError.message}</p>
+                        </div>
+                      )}
                       
                       <div className="space-y-3">
                         <div>
                           <label className="text-xs font-semibold text-ink-500 mb-1.5 block">Session Type</label>
                           <select value={newSession.sessionType}
-                            onChange={(e) => setNewSession({...newSession, sessionType: e.target.value})}
+                            onChange={(e) => {
+                              setNewSession({...newSession, sessionType: e.target.value});
+                              setFormError(null);
+                            }}
                             className="w-full px-3 py-2 rounded-xl border border-surface-200 bg-white text-ink-700 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none">
-                            <option value="MORNING">Morning Session</option>
-                            <option value="EVENING">Evening Session</option>
+                            <option value="MORNING">
+                              Morning Session {existingSessionTypes.includes('MORNING') ? '(Already scheduled)' : ''}
+                            </option>
+                            <option value="EVENING">
+                              Evening Session {existingSessionTypes.includes('EVENING') ? '(Already scheduled)' : ''}
+                            </option>
                           </select>
+                          {existingSessionTypes.includes(newSession.sessionType) && (
+                            <p className="text-[11px] text-amber-600 font-medium mt-1">
+                              A {newSession.sessionType.toLowerCase()} session already exists for this date.
+                            </p>
+                          )}
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div>
@@ -258,8 +305,8 @@ export default function DoctorCalendar() {
                       </div>
 
                       <div className="flex space-x-3 pt-2">
-                        <button onClick={() => setShowAddSession(false)} className="flex-1 py-2.5 rounded-xl border border-surface-200 bg-white text-ink-600 text-sm font-semibold hover:bg-surface-50 transition-colors">Cancel</button>
-                        <button onClick={addSession} disabled={isSaving} className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 shadow-md shadow-primary-500/20 transition-colors">
+                        <button onClick={() => { setShowAddSession(false); setFormError(null); }} className="flex-1 py-2.5 rounded-xl border border-surface-200 bg-white text-ink-600 text-sm font-semibold hover:bg-surface-50 transition-colors">Cancel</button>
+                        <button onClick={addSession} disabled={isSaving || existingSessionTypes.includes(newSession.sessionType)} className={`flex-1 py-2.5 rounded-xl text-white text-sm font-bold shadow-md transition-colors ${isSaving || existingSessionTypes.includes(newSession.sessionType) ? 'bg-surface-300 cursor-not-allowed text-surface-500' : 'bg-primary-600 hover:bg-primary-700 shadow-primary-500/20'}`}>
                           {isSaving ? 'Creating...' : 'Create'}
                         </button>
                       </div>
