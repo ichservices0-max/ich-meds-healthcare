@@ -142,22 +142,57 @@ router.post('/sessions', authenticateDoctor, async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    const sessionDate = new Date(date);
+    if (isNaN(sessionDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid date format' });
+    }
+
+    const tokens = parseInt(maxTokens, 10);
+    if (isNaN(tokens) || tokens <= 0) {
+      return res.status(400).json({ error: 'Invalid maxTokens value. Must be a positive number.' });
+    }
+
+    // Check if session already exists for this doctor, date, and sessionType
+    const existing = await prisma.doctorSession.findFirst({
+      where: {
+        doctorId: req.user.id,
+        date: sessionDate,
+        sessionType,
+      },
+    });
+
+    if (existing) {
+      // Update existing session details
+      const updated = await prisma.doctorSession.update({
+        where: { id: existing.id },
+        data: {
+          startTime,
+          endTime,
+          maxTokens: tokens,
+        },
+      });
+      return res.status(200).json(updated);
+    }
+
     const session = await prisma.doctorSession.create({
       data: {
         doctorId: req.user.id,
-        date: new Date(date),
+        date: sessionDate,
         sessionType,
         startTime,
         endTime,
-        maxTokens: parseInt(maxTokens, 10),
+        maxTokens: tokens,
         currentToken: 0,
       },
     });
 
     res.status(201).json(session);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Add Session Error:', error);
-    res.status(500).json({ error: 'Server error adding session' });
+    if (error.code === 'P2002') {
+      return res.status(409).json({ error: 'A session for this date and time slot already exists.' });
+    }
+    res.status(500).json({ error: error?.message || 'Server error adding session' });
   }
 });
 
