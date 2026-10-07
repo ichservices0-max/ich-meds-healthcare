@@ -1,0 +1,2 @@
+ALTER TABLE "patients" ADD COLUMN IF NOT EXISTS "bloodGroup" TEXT;
+ALTER TABLE "patients" ADD COLUMN IF NOT EXISTS "address" TEXT;
