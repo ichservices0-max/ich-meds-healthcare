@@ -19,7 +19,6 @@ router.get('/specialties', async (_req: Request, res: Response): Promise<void> =
 
     res.status(500).json({
       error: 'Could not fetch specialties.',
-      details: error instanceof Error ? error.message : String(error),
     });
   }
 });
