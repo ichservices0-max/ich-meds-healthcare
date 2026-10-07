@@ -9,6 +9,7 @@ import axios from 'axios'
 import { getSocket } from '@/lib/socket'
 import ChatBox from '@/components/ChatBox'
 import { useAuth } from '@/contexts/AuthContext'
+import { getToken } from '@/lib/auth'
 
 function QueueTrackerContent() {
   const params = useParams()
@@ -49,7 +50,7 @@ function QueueTrackerContent() {
 
     const fetchAppointment = async () => {
       try {
-        const token = localStorage.getItem('token') || localStorage.getItem('doctorToken')
+        const token = getToken()
         const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/appointments/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
