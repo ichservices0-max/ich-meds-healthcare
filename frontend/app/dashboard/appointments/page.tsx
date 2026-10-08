@@ -153,7 +153,7 @@ export default function AppointmentsPage() {
                         </span>
                         <span className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-ink-400" />
-                          {new Date(appt.date).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
+                          {new Date(appt.session.date).toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}
                         </span>
                         <span className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-ink-400" />
