@@ -17,7 +17,7 @@ import { ClipboardList } from 'lucide-react'
 type Tab = 'upcoming' | 'past' | 'cancelled'
 
 const MOCK_DOCTOR: Doctor = {
-  _id: '1', name: 'Dr. Sarah Mitchell', specialty: 'Cardiologist', city: 'New York',
+  id: '1', name: 'Dr. Sarah Mitchell', specialty: 'Cardiologist', city: 'New York',
   rating: 4.9, reviewCount: 312, fee: 120, availableSlots: 5, isOnline: true, isVerified: true, experience: 12,
 }
 
@@ -57,9 +57,9 @@ export default function AppointmentsPage() {
     if (!confirm('Are you sure you want to cancel this appointment?')) return
     try {
       await appointmentsApi.cancel(id)
-      setAppointments((prev) => prev.map((a) => a._id === id ? { ...a, status: 'CANCELLED' } : a))
+      setAppointments((prev) => prev.map((a) => a.id === id ? { ...a, status: 'CANCELLED' } : a))
     } catch {
-      setAppointments((prev) => prev.map((a) => a._id === id ? { ...a, status: 'CANCELLED' } : a))
+      setAppointments((prev) => prev.map((a) => a.id === id ? { ...a, status: 'CANCELLED' } : a))
     }
   }
 
@@ -112,7 +112,7 @@ export default function AppointmentsPage() {
               </div>
               <p className="text-ink-600 font-semibold text-lg">No {tab} appointments</p>
               <p className="text-ink-400 text-sm mt-1">You're all caught up for now.</p>
-              {tab === 'upcoming' && (
+              {tab === ('upcoming' as any) && (
                 <Link href="/dashboard/doctors" className="btn-primary mt-6 inline-flex items-center gap-2 text-sm shadow-sm">
                   <Plus className="w-4 h-4" /> Book Appointment
                 </Link>
@@ -123,7 +123,7 @@ export default function AppointmentsPage() {
               const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(appt.doctor.name)}&background=4F46E5&color=fff&size=64`
               return (
                 <motion.div
-                  key={appt.id || appt._id}
+                  key={appt.id || appt.id}
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.07 }}
@@ -200,21 +200,21 @@ export default function AppointmentsPage() {
                       {(appt.status === 'WAITING' || appt.status === 'IN_PROGRESS') && (
                         <div className="flex flex-wrap items-center gap-3 mt-5 pt-5 border-t border-ink-100">
                           <Link
-                            href={`/dashboard/appointments/queue?id=${appt.id || appt._id}`}
+                            href={`/dashboard/appointments/queue?id=${appt.id || appt.id}`}
                             className="btn-primary flex items-center gap-2 text-sm py-2 px-4 bg-primary-600 text-white"
                           >
                             <Clock className="w-4 h-4" /> Live Queue Tracker
                           </Link>
                           
                           <button
-                            onClick={() => setPreCheckAppointmentId(appt.id || appt._id)}
+                            onClick={() => setPreCheckAppointmentId(appt.id || appt.id)}
                             className="btn-secondary flex items-center gap-2 text-sm py-2 px-4 bg-white border border-primary-200 text-primary-700 hover:bg-primary-50"
                           >
                             <ClipboardList className="w-4 h-4" /> Fill Pre-Check
                           </button>
                           
                           <button
-                            onClick={() => { setChatDoctor(appt.doctor); setChatRoomId(appt.id || appt._id || '') }}
+                            onClick={() => { setChatDoctor(appt.doctor); setChatRoomId(appt.id || appt.id || '') }}
                             className="btn-secondary flex items-center gap-2 text-sm py-2 px-4 bg-white"
                           >
                             <MessageSquare className="w-4 h-4" /> Message
@@ -222,14 +222,14 @@ export default function AppointmentsPage() {
                           
                           {appt.status === 'IN_PROGRESS' && appt.type === 'video' && (
                             <button
-                              onClick={() => { setVideoDoctor(appt.doctor); setVideoRoomId(appt.roomId || `video-${appt._id}`) }}
+                              onClick={() => { setVideoDoctor(appt.doctor); setVideoRoomId(appt.roomId || `video-${appt.id}`) }}
                               className="btn-primary flex items-center gap-2 text-sm py-2 px-4 shadow-sm shadow-glow-indigo bg-gradient-to-r from-primary-600 to-accent-600 text-white border-0"
                             >
                               <Video className="w-4 h-4" /> Join Video Call
                             </button>
                           )}
                           <button
-                            onClick={() => handleCancel(appt.id || appt._id)}
+                            onClick={() => handleCancel(appt.id || appt.id)}
                             className="text-red-500 hover:text-red-700 text-sm font-semibold px-4 ml-auto"
                           >
                             Cancel
